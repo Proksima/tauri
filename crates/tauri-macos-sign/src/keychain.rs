@@ -180,8 +180,7 @@ impl Keychain {
       error,
     })?;
 
-    let signing_identity = identity::list(&keychain_path)
-      .map(|l| l.first().cloned())?
+    let signing_identity = dbg!(dbg!(identity::list(&keychain_path)).map(|l| l.first().cloned()))?
       .ok_or(Error::ResolveSigningIdentity)?;
 
     Ok(Self {
