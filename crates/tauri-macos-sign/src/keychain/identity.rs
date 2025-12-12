@@ -34,9 +34,8 @@ pub struct Team {
 
 impl Team {
   fn from_x509(cert_prefix: &'static str, cert: X509Certificate) -> Result<Self> {
-    let common_name = cert
-      .subject_common_name()
-      .ok_or(Error::CertificateMissingCommonName)?;
+    let common_name =
+      dbg!(cert.subject_common_name()).ok_or(Error::CertificateMissingCommonName)?;
 
     let organization = cert
       .subject_name()
@@ -94,8 +93,8 @@ pub fn list(keychain_path: &Path) -> Result<Vec<Team>> {
       "iOS App Development:",
       "Mac Development:",
     ] {
-      let pem_list_out = get_pem_list(keychain_path, cert_prefix)?;
-      let cert_list = X509Certificate::from_pem_multiple(pem_list_out.stdout)
+      let pem_list_out = dbg!(get_pem_list(keychain_path, cert_prefix))?;
+      let cert_list = dbg!(X509Certificate::from_pem_multiple(pem_list_out.stdout))
         .map_err(|error| Error::X509Certificate { error })?;
       certs.extend(cert_list.into_iter().map(|cert| (cert_prefix, cert)));
     }
@@ -105,10 +104,10 @@ pub fn list(keychain_path: &Path) -> Result<Vec<Team>> {
     certs
       .into_iter()
       .flat_map(|(cert_prefix, cert)| {
-        Team::from_x509(cert_prefix, cert).map_err(|err| {
+        dbg!(Team::from_x509(cert_prefix, cert).map_err(|err| {
           log::error!("{err}");
           err
-        })
+        }))
       })
       // Silly way to sort this and ensure no dupes
       .collect::<BTreeSet<_>>()

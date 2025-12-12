@@ -116,12 +116,14 @@ pub struct BuiltApplication {
 }
 
 pub fn command(options: Options, noise_level: NoiseLevel) -> Result<BuiltApplication> {
+  dbg!("BUILD COMMAND RUNNING -- Sanity check.");
   crate::helpers::app_paths::resolve();
 
   delete_codegen_vars();
 
   let mut build_options: BuildOptions = options.clone().into();
 
+  dbg!("A");
   let first_target = Target::all()
     .get(
       options
@@ -133,6 +135,7 @@ pub fn command(options: Options, noise_level: NoiseLevel) -> Result<BuiltApplica
     .unwrap();
   build_options.target = Some(first_target.triple.into());
 
+  dbg!("B");
   let tauri_config = get_tauri_config(
     tauri_utils::platform::Target::Android,
     &options
@@ -141,6 +144,8 @@ pub fn command(options: Options, noise_level: NoiseLevel) -> Result<BuiltApplica
       .map(|conf| &conf.0)
       .collect::<Vec<_>>(),
   )?;
+
+  dbg!("C");
   let (interface, config, metadata) = {
     let tauri_config_guard = tauri_config.lock().unwrap();
     let tauri_config_ = tauri_config_guard.as_ref().unwrap();
@@ -164,9 +169,11 @@ pub fn command(options: Options, noise_level: NoiseLevel) -> Result<BuiltApplica
     Profile::Release
   };
 
+  dbg!("D");
   let tauri_path = tauri_dir();
   set_current_dir(tauri_path).context("failed to set current directory to Tauri directory")?;
 
+  dbg!("E");
   ensure_init(
     &tauri_config,
     config.app(),
@@ -175,15 +182,18 @@ pub fn command(options: Options, noise_level: NoiseLevel) -> Result<BuiltApplica
     options.ci,
   )?;
 
+  dbg!("F");
   let mut env = env(options.ci)?;
   configure_cargo(&mut env, &config)?;
 
+  dbg!("G");
   generate_tauri_properties(
     &config,
     tauri_config.lock().unwrap().as_ref().unwrap(),
     false,
   )?;
 
+  dbg!("H");
   {
     let config_guard = tauri_config.lock().unwrap();
     let config_ = config_guard.as_ref().unwrap();
@@ -191,9 +201,11 @@ pub fn command(options: Options, noise_level: NoiseLevel) -> Result<BuiltApplica
     crate::build::setup(&interface, &mut build_options, config_, true)?;
   }
 
+  dbg!("I");
   let installed_targets =
     crate::interface::rust::installation::installed_targets().unwrap_or_default();
 
+  dbg!("J");
   if !installed_targets.contains(&first_target.triple().into()) {
     log::info!("Installing target {}", first_target.triple());
     first_target
@@ -209,6 +221,7 @@ pub fn command(options: Options, noise_level: NoiseLevel) -> Result<BuiltApplica
     .build(&config, &metadata, &env, noise_level, true, profile)
     .context("failed to build Android app")?;
 
+  dbg!("K");
   let open = options.open;
   let options_handle = run_build(
     &interface,
@@ -221,10 +234,12 @@ pub fn command(options: Options, noise_level: NoiseLevel) -> Result<BuiltApplica
     noise_level,
   )?;
 
+  dbg!("L");
   if open {
     open_and_wait(&config, &env);
   }
 
+  dbg!("M");
   Ok(BuiltApplication {
     config,
     interface,
