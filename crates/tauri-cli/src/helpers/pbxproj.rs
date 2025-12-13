@@ -239,13 +239,11 @@ impl Pbxproj {
 
       let new_line_content = format!("{}{key} = {value};", build_setting.identation);
 
-      if build_setting.line_number < self.raw_lines.len() {
-        if let Some(line) = self.raw_lines.get_mut(build_setting.line_number) {
-          *line = new_line_content;
-          self.has_changes = true;
-        }
-      } else if let Some(line) = self.additions.get_mut(&build_setting.line_number) {
+      if let Some(line) = self.additions.get_mut(&build_setting.line_number) {
+        line.push_str(&format!("\n{}", new_line_content));
+      } else if let Some(line) = self.raw_lines.get_mut(build_setting.line_number) {
         *line = new_line_content;
+        self.has_changes = true;
       }
 
       build_setting.value = value.to_string();
@@ -258,8 +256,13 @@ impl Pbxproj {
       return;
     };
 
-    let new_line_number = last_build_setting.line_number + 1;
+    let mut new_line_number = last_build_setting.line_number + 1;
+    if self.additions.contains_key(&last_build_setting.line_number) {
+      new_line_number = last_build_setting.line_number;
+    }
+
     let identation = last_build_setting.identation.clone();
+    let new_entry = format!("{}{key} = {value};", identation);
 
     build_configuration.build_settings.push(BuildSettings {
       identation: identation.clone(),
@@ -270,7 +273,12 @@ impl Pbxproj {
 
     self
       .additions
-      .insert(new_line_number, format!("{}{key} = {value};", identation));
+      .entry(new_line_number)
+      .and_modify(|current| {
+        current.push('\n');
+        current.push_str(&new_entry);
+      })
+      .or_insert(new_entry);
 
     self.has_changes = true;
   }
