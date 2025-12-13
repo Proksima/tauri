@@ -233,29 +233,46 @@ impl Pbxproj {
       .iter_mut()
       .find(|s| s.key == key)
     {
-      if build_setting.value != value {
-        let Some(line) = self.raw_lines.get_mut(build_setting.line_number) else {
-          return;
-        };
-
-        *line = format!("{}{key} = {value};", build_setting.identation);
-        self.has_changes = true;
-      }
-    } else {
-      let Some(last_build_setting) = build_configuration.build_settings.last().cloned() else {
+      if build_setting.value == value {
         return;
-      };
-      build_configuration.build_settings.push(BuildSettings {
-        identation: last_build_setting.identation.clone(),
-        line_number: last_build_setting.line_number + 1,
-        key: key.to_string(),
-        value: value.to_string(),
-      });
-      self.additions.insert(
-        last_build_setting.line_number + 1,
-        format!("{}{key} = {value};", last_build_setting.identation),
-      );
+      }
+
+      let new_line_content = format!("{}{key} = {value};", build_setting.identation);
+
+      if build_setting.line_number < self.raw_lines.len() {
+        if let Some(line) = self.raw_lines.get_mut(build_setting.line_number) {
+          *line = new_line_content;
+          self.has_changes = true;
+        }
+      } else if let Some(line) = self.additions.get_mut(&build_setting.line_number) {
+        *line = new_line_content;
+      }
+
+      build_setting.value = value.to_string();
+
+      return;
     }
+
+    let Some(last_build_setting) = build_configuration.build_settings.last() else {
+      log::error!("cannot add '{key}' to an empty build configuration");
+      return;
+    };
+
+    let new_line_number = last_build_setting.line_number + 1;
+    let identation = last_build_setting.identation.clone();
+
+    build_configuration.build_settings.push(BuildSettings {
+      identation: identation.clone(),
+      line_number: new_line_number,
+      key: key.to_string(),
+      value: value.to_string(),
+    });
+
+    self
+      .additions
+      .insert(new_line_number, format!("{}{key} = {value};", identation));
+
+    self.has_changes = true;
   }
 }
 
